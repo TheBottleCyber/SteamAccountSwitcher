@@ -113,7 +113,17 @@ namespace SteamSwitcher
                                 Console.Clear();
                                 break;
                             }
+
+                            default:
+                            {
+                                Console.Clear();
+                                break;
+                            }
                         }
+                    }
+                    else
+                    {
+                        Console.Clear();
                     }
                 }
             }
