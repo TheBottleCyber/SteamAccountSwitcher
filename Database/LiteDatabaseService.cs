@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using LiteDB;
-using static SteamSwitcher.Models;
+using SteamSwitcher.Models;
 
-namespace SteamSwitcher
+namespace SteamSwitcher.Database
 {
-    public class LiteDatabaseService
+    public class LiteDatabaseService : IDatabaseService
     {
         private readonly ILiteCollection<SteamUser> _steamUserCollection;
 
-        public LiteDatabaseService(DatabaseSettings settings)
+        public LiteDatabaseService(IDatabaseSettings settings)
         {
             var litedbClient = new LiteDatabase(settings.ConnectionString);
             _steamUserCollection = litedbClient.GetCollection<SteamUser>(settings.DatabaseName);
@@ -19,7 +19,7 @@ namespace SteamSwitcher
             return _steamUserCollection.FindAll();
         }
 
-        public SteamUser FindById(BsonValue id)
+        public SteamUser FindById(int id)
         {
             return _steamUserCollection.FindById(id);
         }
@@ -29,7 +29,7 @@ namespace SteamSwitcher
             _steamUserCollection.Insert(entity);
         }
 
-        public void Delete(BsonValue id)
+        public void Delete(int id)
         {
             _steamUserCollection.Delete(id);
         }

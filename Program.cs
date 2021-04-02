@@ -2,7 +2,8 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using static SteamSwitcher.Models;
+using SteamSwitcher.Database;
+using SteamSwitcher.Models;
 
 namespace SteamSwitcher
 {
@@ -10,7 +11,7 @@ namespace SteamSwitcher
     {
         static void Main()
         {
-            var liteDatabaseService = new LiteDatabaseService(new DatabaseSettings("user.db", "users"));
+            var liteDatabaseService = new LiteDatabaseService(new LiteDatabaseSettings("user.db", "users"));
 
             for (;;)
             {
@@ -33,7 +34,7 @@ namespace SteamSwitcher
                 }
                 else
                 {
-                    Console.WriteLine("No users in database, type new for creating any one\n");
+                    Console.WriteLine("No users in database, type n for creating any one\n");
                 }
 
                 var inputCommand = Console.ReadLine();
@@ -42,70 +43,7 @@ namespace SteamSwitcher
                 {
                     var inputSplitted = inputCommand.Split();
 
-                    switch (inputSplitted[0])
-                    {
-                        case "q":
-                        {
-                            Environment.Exit(0);
-                            break;
-                        }
-
-                        case "s":
-                        {
-                            var userId = inputSplitted[1];
-                            var result = int.TryParse(userId, out int id);
-
-                            if (result)
-                            {
-                                Console.WriteLine($"Selecting user with ID: {id}");
-
-                                var user = liteDatabaseService.FindById(id);
-
-                                KillSteam();
-                                RegistryEdit(user.Name);
-                                StartSteam();
-                            }
-
-                            Console.Clear();
-                            break;
-                        }
-
-                        case "n":
-                        {
-                            var userName = inputSplitted[1];
-                            var hint = inputSplitted[2];
-
-                            if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(hint))
-                            {
-                                Console.WriteLine($"Creating user with username: {userName}");
-                                liteDatabaseService.Insert(new SteamUser {Name = userName, Hint = hint});
-                            }
-
-                            Console.Clear();
-                            break;
-                        }
-
-                        case "d":
-                        {
-                            var userId = inputSplitted[1];
-                            var result = int.TryParse(userId, out int id);
-
-                            if (result)
-                            {
-                                Console.WriteLine($"Removing user with ID: {id}");
-                                liteDatabaseService.Delete(id);
-                            }
-
-                            Console.Clear();
-                            break;
-                        }
-
-                        default:
-                        {
-                            Console.Clear();
-                            break;
-                        }
-                    }
+                    ProcessCommand(liteDatabaseService, inputSplitted);
                 }
                 else
                 {
@@ -114,41 +52,63 @@ namespace SteamSwitcher
             }
         }
 
-
-        static void KillSteam()
+        static void ProcessCommand(IDatabaseService databaseService, string[] input)
         {
-            foreach (var process in Process.GetProcessesByName("steam"))
+            switch (input[0])
             {
-                process.Kill();
-            }
-        }
-
-
-        static void RegistryEdit(string username)
-        {
-            using (var steamSubKey = Registry.CurrentUser.OpenSubKey("Software\\Valve\\Steam", true))
-            {
-                if (steamSubKey != null)
+                case "q":
                 {
-                    steamSubKey.SetValue("AutoLoginUser", username, RegistryValueKind.String);
-                    steamSubKey.SetValue("RememberPassword", 1, RegistryValueKind.DWord);
+                    Environment.Exit(0);
+                    break;
+                }
 
-                    steamSubKey.Close();
+                case "s":
+                {
+                    var result = int.TryParse(input[1], out int id);
+
+                    if (result)
+                    {
+                        Console.WriteLine($"Selecting user with ID: {id}");
+
+                        var user = databaseService.FindById(id);
+
+                        Steam.Kill();
+                        Steam.RegistryEdit(user.Name);
+                        Steam.Start();
+                    }
+
+                    break;
+                }
+
+                case "n":
+                {
+                    var userName = input[1];
+                    var hint = input[2];
+
+                    if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(hint))
+                    {
+                        Console.WriteLine($"Creating user with username: {userName}");
+                        databaseService.Insert(new SteamUser {Name = userName, Hint = hint});
+                    }
+
+                    break;
+                }
+
+                case "d":
+                {
+                    var result = int.TryParse(input[1], out int id);
+
+                    if (result)
+                    {
+                        Console.WriteLine($"Removing user with ID: {id}");
+                        databaseService.Delete(id);
+                    }
+
+                    break;
                 }
             }
-        }
 
-        static void StartSteam()
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo("steam://open/main")
-                {
-                    UseShellExecute = true
-                }
-            };
-
-            process.Start();
+            Console.Clear();
         }
     }
 }
