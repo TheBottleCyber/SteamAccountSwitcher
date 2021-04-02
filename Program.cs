@@ -2,26 +2,16 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using LiteDB;
+using static SteamSwitcher.Models;
 
 namespace SteamSwitcher
 {
-    public class SteamUser
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string Hint { get; set; }
-
-        public override string ToString()
-        {
-            return $"{Id}) {Name} ({Hint})";
-        }
-    }
-
     class Program
     {
         static void Main()
         {
+            var liteDatabaseService = new LiteDatabaseService(new DatabaseSettings("user.db", "users"));
+
             for (;;)
             {
                 Console.WriteLine("Steam Account Switcher");
@@ -29,105 +19,101 @@ namespace SteamSwitcher
                 Console.WriteLine("Usage: q - quit programm, s - select ID, n - create USERNAME HINT, d - remove ID");
                 Console.WriteLine("Examples: s 1, n TheBottle main, d 1\n");
 
-                using (var db = new LiteDatabase(@"user.db"))
+                var savedUsers = liteDatabaseService.FindAll();
+                if (savedUsers != null && savedUsers.Any())
                 {
-                    var col = db.GetCollection<SteamUser>("users");
+                    Console.WriteLine("Available users in database:");
 
-                    var firstRunUsers = col.FindAll();
-                    if (firstRunUsers != null && firstRunUsers.Any())
+                    foreach (var user in savedUsers)
                     {
-                        Console.WriteLine("Available users in database:");
+                        Console.WriteLine($"{user.Id}) {user.Name} ({user.Hint})");
+                    }
 
-                        foreach (var users in firstRunUsers)
+                    Console.Write("\n");
+                }
+                else
+                {
+                    Console.WriteLine("No users in database, type new for creating any one\n");
+                }
+
+                var inputCommand = Console.ReadLine();
+
+                if (!string.IsNullOrEmpty(inputCommand))
+                {
+                    var inputSplitted = inputCommand.Split();
+
+                    switch (inputSplitted[0])
+                    {
+                        case "q":
                         {
-                            Console.WriteLine(users.ToString());
+                            Environment.Exit(0);
+                            break;
                         }
 
-                        Console.Write("\n");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No users in database, type new for creating any one\n");
-                    }
-
-                    var inputCommand = Console.ReadLine();
-
-                    if (!string.IsNullOrEmpty(inputCommand))
-                    {
-                        var inputSplitted = inputCommand.Split();
-
-                        switch (inputSplitted[0])
+                        case "s":
                         {
-                            case "q":
+                            var userId = inputSplitted[1];
+                            var result = int.TryParse(userId, out int id);
+
+                            if (result)
                             {
-                                Environment.Exit(0);
-                                break;
+                                Console.WriteLine($"Selecting user with ID: {id}");
+
+                                var user = liteDatabaseService.FindById(id);
+
+                                KillSteam();
+                                RegistryEdit(user.Name);
+                                StartSteam();
                             }
 
-                            case "s":
+                            Console.Clear();
+                            break;
+                        }
+
+                        case "n":
+                        {
+                            var userName = inputSplitted[1];
+                            var hint = inputSplitted[2];
+
+                            if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(hint))
                             {
-                                var userId = inputSplitted[1];
-                                var result = int.TryParse(userId, out int id);
-
-                                if (result)
-                                {
-                                    Console.WriteLine($"Selecting user with ID: {id}");
-
-                                    var user = col.FindById(id);
-
-                                    KillSteam();
-                                    RegistryEdit(user.Name);
-                                    StartSteam();
-                                }
-
-                                Console.Clear();
-                                break;
+                                Console.WriteLine($"Creating user with username: {userName}");
+                                liteDatabaseService.Insert(new SteamUser {Name = userName, Hint = hint});
                             }
 
-                            case "n":
+                            Console.Clear();
+                            break;
+                        }
+
+                        case "d":
+                        {
+                            var userId = inputSplitted[1];
+                            var result = int.TryParse(userId, out int id);
+
+                            if (result)
                             {
-                                var userName = inputSplitted[1];
-                                var hint = inputSplitted[2];
-
-                                if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(hint))
-                                {
-                                    Console.WriteLine($"Creating user with username: {userName}");
-                                    col.Insert(new SteamUser { Name = userName, Hint = hint});
-                                }
-
-                                Console.Clear();
-                                break;
+                                Console.WriteLine($"Removing user with ID: {id}");
+                                liteDatabaseService.Delete(id);
                             }
 
-                            case "d":
-                            {
-                                var userId = inputSplitted[1];
-                                var result = int.TryParse(userId, out int id);
+                            Console.Clear();
+                            break;
+                        }
 
-                                if (result)
-                                {
-                                    Console.WriteLine($"Removing user with ID: {id}");
-                                    col.Delete(id);
-                                }
-
-                                Console.Clear();
-                                break;
-                            }
-
-                            default:
-                            {
-                                Console.Clear();
-                                break;
-                            }
+                        default:
+                        {
+                            Console.Clear();
+                            break;
                         }
                     }
-                    else
-                    {
-                        Console.Clear();
-                    }
+                }
+                else
+                {
+                    Console.Clear();
                 }
             }
         }
+
 
         static void KillSteam()
         {
@@ -136,6 +122,7 @@ namespace SteamSwitcher
                 process.Kill();
             }
         }
+
 
         static void RegistryEdit(string username)
         {
