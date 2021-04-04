@@ -1,6 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Diagnostics;
+﻿using System;
 using System.Linq;
 using SteamSwitcher.Database;
 using SteamSwitcher.Models;
@@ -45,10 +43,8 @@ namespace SteamSwitcher
 
                     ProcessCommand(liteDatabaseService, inputSplitted);
                 }
-                else
-                {
-                    Console.Clear();
-                }
+                
+                Console.Clear();
             }
         }
 
@@ -64,9 +60,9 @@ namespace SteamSwitcher
 
                 case "s":
                 {
-                    var result = int.TryParse(input[1], out int id);
+                    string userId = input.Length > 1 ? input[1] : string.Empty;
 
-                    if (result)
+                    if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int id))
                     {
                         Console.WriteLine($"Selecting user with ID: {id}");
 
@@ -82,8 +78,8 @@ namespace SteamSwitcher
 
                 case "n":
                 {
-                    var userName = input[1];
-                    var hint = input[2];
+                    var userName = input.Length > 1 ? input[1] : string.Empty;
+                    var hint = input.Length > 2 ? input[2] : string.Empty;
 
                     if (!string.IsNullOrEmpty(userName) && !string.IsNullOrEmpty(hint))
                     {
@@ -96,9 +92,9 @@ namespace SteamSwitcher
 
                 case "d":
                 {
-                    var result = int.TryParse(input[1], out int id);
-
-                    if (result)
+                    string userId = input.Length > 1 ? input[1] : string.Empty;
+                    
+                    if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out int id))
                     {
                         Console.WriteLine($"Removing user with ID: {id}");
                         databaseService.Delete(id);
@@ -107,8 +103,6 @@ namespace SteamSwitcher
                     break;
                 }
             }
-
-            Console.Clear();
         }
     }
 }

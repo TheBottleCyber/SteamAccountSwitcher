@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using LiteDB;
 using SteamSwitcher.Models;
 
 namespace SteamSwitcher.Database
